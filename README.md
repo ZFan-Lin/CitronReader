@@ -1,7 +1,8 @@
-# Epub Reader for Edge
+# Citron Reader for Edge
 
 一个受 Calibre 阅读器启发的 Microsoft Edge EPUB 阅读插件。
-
+大量使用ai实现功能
+<img width="783" height="783" alt="1000101093" src="https://github.com/user-attachments/assets/771d95d8-ee4f-4328-97a2-156a3d975c2d" />
 ## 功能特性
 
 - 📖 **EPUB 阅读** - 支持打开和阅读标准 EPUB 格式电子书
@@ -12,6 +13,7 @@
 - ⌨️ **键盘导航** - 支持左右方向键翻页
 - 💾 **设置保存** - 自动保存阅读偏好设置
 - 🖱️ **拖拽支持** - 支持拖拽 EPUB 文件到阅读器打开
+- 🐱‍👤**记忆支持** - 支持记录阅读进度，下次打开自动跳转
 
 ## 安装方法
 
@@ -103,5 +105,5 @@ EpubReaderForEdge/
 MIT License
 
 ## 致谢
-
+Qwen ai 本插件使用千问ai制作。
 灵感来源于 [Calibre](https://calibre-ebook.com/) 的 EPUB 阅读器。
