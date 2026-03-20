@@ -657,6 +657,8 @@ class EpubReader {
 
   updatePageInfo() {
     const pageInfo = document.getElementById('pageInfo');
+    if (!pageInfo) return; // 元素不存在时直接返回，避免报错
+    
     if (this.chapters.length > 0) {
       pageInfo.textContent = `${this.currentChapterIndex + 1} / ${this.chapters.length}`;
     } else {
