@@ -19,6 +19,7 @@ body, html {
 /* Main container holds sidebar and content area */
 .main-container {
   display: flex;
+  flex-direction: row;
   flex: 1;
   overflow: hidden;
 }
@@ -77,13 +78,14 @@ body, html {
   background: white;
   border-right: 1px solid #ddd;
   display: none;
+  flex-direction: column;
   flex-shrink: 0;
   overflow-y: auto;
   height: 100%;
 }
 
 .sidebar.open {
-  display: block;
+  display: flex;
 }
 
 /* Content Area */
