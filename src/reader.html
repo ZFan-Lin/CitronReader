@@ -22,21 +22,24 @@
       <button id="btnSettings" title="Settings" style="margin-left: auto;">⚙️</button>
     </div>
 
-    <!-- Sidebar for TOC -->
-    <div class="sidebar" id="sidebar">
-      <div class="sidebar-header">
-        <h3 id="tocTitle">Table of Contents</h3>
+    <!-- Main Container for Sidebar and Content -->
+    <div class="main-container" id="mainContainer">
+      <!-- Sidebar for TOC -->
+      <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+          <h3 id="tocTitle">Table of Contents</h3>
+        </div>
+        <div class="toc-content" id="tocContent"></div>
       </div>
-      <div class="toc-content" id="tocContent"></div>
-    </div>
 
-    <!-- Main Content Area -->
-    <div class="content-area" id="contentArea">
-      <div class="welcome-message" id="welcomeMessage">
-        <h1>Welcome to Epub Reader for Edge</h1>
-        <p>Click "Open" to load an EPUB file, or drag and drop an EPUB file here.</p>
+      <!-- Main Content Area -->
+      <div class="content-area" id="contentArea">
+        <div class="welcome-message" id="welcomeMessage">
+          <h1>Welcome to Epub Reader for Edge</h1>
+          <p>Click "Open" to load an EPUB file, or drag and drop an EPUB file here.</p>
+        </div>
+        <iframe id="viewerFrame" sandbox="allow-same-origin allow-scripts"></iframe>
       </div>
-      <iframe id="viewerFrame" sandbox="allow-same-origin allow-scripts"></iframe>
     </div>
 
     <!-- Settings Modal -->

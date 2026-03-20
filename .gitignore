@@ -1,1 +1,1 @@
-(src/reader.css and src/reader.js are source files, no build artifacts, dependencies, or temp files in the changes)
+Nothing needs to be added to .gitignore since the changes only include source files (.css, .html, .js) without any build artifacts, dependencies, or temporary files.

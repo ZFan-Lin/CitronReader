@@ -152,13 +152,11 @@ class EpubReader {
       } else if (e.key === 'Escape') {
         const sidebar = document.getElementById('sidebar');
         const btnToc = document.getElementById('btnToc');
-        const viewerContainer = document.getElementById('app');
         
         // Close sidebar if open
         if (sidebar.classList.contains('open')) {
           sidebar.classList.remove('open');
           btnToc.classList.remove('active');
-          viewerContainer.classList.remove('sidebar-open');
         } else {
           // Also close settings modal if open
           this.closeSettings();
@@ -504,14 +502,10 @@ class EpubReader {
   toggleSidebar() {
     const sidebar = document.getElementById('sidebar');
     const btnToc = document.getElementById('btnToc');
-    const viewerContainer = document.getElementById('app');
     
     // Toggle open state
     sidebar.classList.toggle('open');
     btnToc.classList.toggle('active');
-    
-    // Toggle sidebar-open class on container to adjust layout
-    viewerContainer.classList.toggle('sidebar-open');
   }
 
   openSettings() {

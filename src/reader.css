@@ -16,9 +16,11 @@ body, html {
   height: 100vh;
 }
 
-/* When sidebar is open, use row layout */
-#app.sidebar-open {
-  flex-direction: row;
+/* Main container holds sidebar and content area */
+.main-container {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
 }
 
 /* Toolbar Styles */
@@ -77,27 +79,22 @@ body, html {
   display: none;
   flex-shrink: 0;
   overflow-y: auto;
-  height: calc(100vh - 60px); /* Full height minus toolbar */
+  height: 100%;
 }
 
 .sidebar.open {
   display: block;
 }
 
-#app.sidebar-open .sidebar {
-  display: block;
-  order: 1;
-}
-
-#app.sidebar-open .content-area {
-  order: 2;
+/* Content Area */
+.content-area {
   flex: 1;
+  position: relative;
+  background: #fff;
+  overflow: hidden;
   min-width: 0;
-}
-
-/* When sidebar is closed, content area takes full width */
-#app:not(.sidebar-open) .content-area {
-  width: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .sidebar-header {
@@ -226,16 +223,7 @@ body, html {
   background: #e0e0e0;
 }
 
-/* Content Area */
-.content-area {
-  flex: 1;
-  position: relative;
-  background: #fff;
-  overflow: hidden;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-}
+/* Content Area styles already defined above at line 89 */
 
 #welcomeMessage {
   display: flex;
