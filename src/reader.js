@@ -601,11 +601,29 @@ class CitronReader {
         if (this.pendingLocation !== null && this.pendingLocation !== undefined) {
           try {
             console.log('=== Starting Position Restoration ===');
-            console.log('Pending location:', this.pendingLocation);
+            console.log('Pending location:', this.pendingLocation, 'type:', typeof this.pendingLocation);
             
             const doc = frame.contentDocument;
             const body = doc.body;
             const docElement = doc.documentElement;
+            
+            // Normalize pendingLocation to new format { type, value }
+            let locationObj;
+            if (typeof this.pendingLocation === 'object' && this.pendingLocation.type) {
+              // New format
+              locationObj = this.pendingLocation;
+            } else {
+              // Old format (string or number) - treat as percentage
+              const percentValue = parseFloat(this.pendingLocation);
+              if (!isNaN(percentValue)) {
+                locationObj = { type: 'percent', value: percentValue };
+              } else {
+                // Try as ID
+                locationObj = { type: 'id', value: String(this.pendingLocation) };
+              }
+            }
+            
+            console.log('Normalized location:', locationObj);
             
             // Use requestAnimationFrame to ensure DOM is fully rendered
             const restorePosition = (attemptCount) => {
@@ -629,18 +647,22 @@ class CitronReader {
                 return;
               }
               
-              // Check if we have an anchor ID or percentage
-              if (this.pendingLocation.type === 'id' && this.pendingLocation.value) {
-                const targetId = this.pendingLocation.value;
+              // Restore based on location type
+              if (locationObj.type === 'id' && locationObj.value) {
+                const targetId = locationObj.value;
                 const targetElement = doc.getElementById(targetId);
                 if (targetElement) {
                   targetElement.scrollIntoView();
                   console.log('✓ Restored position using anchor ID:', targetId);
                 } else {
-                  console.warn('Anchor ID not found:', targetId);
+                  console.warn('Anchor ID not found:', targetId, '- falling back to percentage');
+                  // Fall back to percentage if ID not found
+                  locationObj.type = 'percent';
+                  locationObj.value = 0;
+                  restorePosition(1);
                 }
-              } else if (this.pendingLocation.type === 'percent' && typeof this.pendingLocation.value === 'number') {
-                const percentage = this.pendingLocation.value;
+              } else if (locationObj.type === 'percent' && typeof locationObj.value === 'number') {
+                const percentage = locationObj.value;
                 const targetScroll = scrollHeight * percentage;
                 console.log('Restoring using percentage:', percentage, 'target:', targetScroll);
                 
