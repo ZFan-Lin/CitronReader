@@ -562,10 +562,13 @@ class CitronReader {
             const doc = frame.contentDocument;
             const body = doc.body;
             
+            // Convert to string to safely check type
+            const locationStr = String(this.pendingLocation);
+            
             // Use requestAnimationFrame to ensure DOM is fully rendered
             const restorePosition = () => {
               // Try as percentage of chapter (most common case)
-              const percentage = parseFloat(this.pendingLocation);
+              const percentage = parseFloat(locationStr);
               if (!isNaN(percentage) && percentage >= 0 && percentage <= 1) {
                 const scrollHeight = body.scrollHeight - body.clientHeight;
                 if (scrollHeight > 0) {
@@ -577,9 +580,9 @@ class CitronReader {
                   // Scroll height not ready yet, try again shortly
                   setTimeout(restorePosition, 50);
                 }
-              } else if (this.pendingLocation.startsWith('#')) {
+              } else if (locationStr.startsWith('#')) {
                 // Try to navigate using element ID
-                const targetId = this.pendingLocation.substring(1);
+                const targetId = locationStr.substring(1);
                 const targetElement = doc.getElementById(targetId);
                 if (targetElement) {
                   targetElement.scrollIntoView();
@@ -587,7 +590,7 @@ class CitronReader {
                 }
               } else {
                 // Try to parse as chapter index
-                const parsed = parseInt(this.pendingLocation);
+                const parsed = parseInt(locationStr);
                 if (!isNaN(parsed) && parsed >= 0 && parsed < this.chapters.length) {
                   console.log('Chapter index position, already loaded chapter', parsed);
                 }
