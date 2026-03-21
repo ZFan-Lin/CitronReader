@@ -464,8 +464,8 @@ body.dark-theme .settings-dropdown .setting-item button:hover {
   overflow: auto;
 }
 
-/* Ensure iframe content can receive click events for closing popups */
-#viewerFrame, #viewerFrame * {
+/* Allow text selection in iframe for highlighting */
+#viewerFrame {
   pointer-events: auto;
 }
 
