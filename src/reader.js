@@ -808,6 +808,15 @@ class CitronReader {
           mark.citron-highlight.red {
             background-color: #e57373 !important;
           }
+          mark.citron-highlight.green {
+            background-color: #81c784 !important;
+          }
+          mark.citron-highlight.purple {
+            background-color: #ba68c8 !important;
+          }
+          mark.citron-highlight.orange {
+            background-color: #ffb74d !important;
+          }
           body.dark-theme mark.citron-highlight.yellow {
             background-color: #f9a825 !important;
           }
@@ -816,6 +825,21 @@ class CitronReader {
           }
           body.dark-theme mark.citron-highlight.red {
             background-color: #c62828 !important;
+          }
+          body.dark-theme mark.citron-highlight.green {
+            background-color: #388e3c !important;
+          }
+          body.dark-theme mark.citron-highlight.purple {
+            background-color: #7b1fa2 !important;
+          }
+          body.dark-theme mark.citron-highlight.orange {
+            background-color: #f57c00 !important;
+          }
+          mark.citron-highlight.has-note {
+            border-bottom: 2px solid rgba(0, 0, 0, 0.4);
+          }
+          body.dark-theme mark.citron-highlight.has-note {
+            border-bottom: 2px solid rgba(255, 255, 255, 0.6);
           }
         `;
         if (doc.head) {
@@ -1756,8 +1780,8 @@ class CitronReader {
       return;
     }
     
-    // Find the highlight element that contains this selection
-    const range = selection.getRangeAt(0);
+    // Create a highlight first if the selection is not already highlighted
+    const range = selection.getRangeAt(0).cloneRange();
     let highlightEl = null;
     
     // Check if selection is within a highlight mark
@@ -1771,10 +1795,47 @@ class CitronReader {
       // Selection is within an existing highlight, show/edit note for it
       this.showNotePopover(highlightEl.dataset.highlightId, highlightEl);
     } else {
-      // Selection is not highlighted yet, show message to highlight first
-      alert(this.settings.language === 'en' 
-        ? 'Please highlight the text first before adding a note.' 
-        : '请先高亮文本，然后再添加笔记。');
+      // Selection is not highlighted yet, create a default highlight first
+      const selectedText = selection.toString().trim();
+      const chapterIndex = this.currentChapterIndex;
+      const chapterHref = this.chapters[chapterIndex]?.href || '';
+      
+      // Create highlight object with default yellow color
+      const highlight = {
+        id: 'hl_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+        text: selectedText,
+        color: 'yellow',
+        chapterIndex: chapterIndex,
+        chapterHref: chapterHref,
+        timestamp: Date.now(),
+        startOffset: range.startOffset,
+        endOffset: range.endOffset,
+        parentPath: this.getNodePath(range.startContainer)
+      };
+      
+      // Save highlight first
+      this.saveHighlight(highlight);
+      
+      // Apply visual highlight
+      const success = this.addHighlightToDOM(range, highlight.id, 'yellow');
+      
+      if (success) {
+        // Clear selection
+        selection.removeAllRanges();
+        
+        // Find the newly created highlight element
+        const newHighlightEl = doc.querySelector(`mark.citron-highlight[data-highlight-id="${highlight.id}"]`);
+        if (newHighlightEl) {
+          // Show note popover for the new highlight
+          this.showNotePopover(highlight.id, newHighlightEl);
+        }
+      } else {
+        // If highlighting failed, remove from storage and show error
+        this.deleteHighlightById(highlight.id);
+        alert(this.settings.language === 'en' 
+          ? 'Failed to add note. Please try again.' 
+          : '添加笔记失败，请重试。');
+      }
     }
     
     // Hide color picker if open

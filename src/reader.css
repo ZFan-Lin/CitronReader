@@ -542,3 +542,169 @@ body.dark-theme #welcomeMessage h1 {
   display: flex;
   pointer-events: auto;
 }
+
+/* Note Popover Styles */
+.note-popover {
+  display: none;
+  position: absolute;
+  background: white;
+  border-radius: 8px;
+  box-shadow: rgba(60, 64, 67, .25) 0 1px 3px 0, rgba(60, 64, 67, .1) 0 4px 8px 3px;
+  padding: 12px;
+  min-width: 250px;
+  max-width: 350px;
+  z-index: 10000;
+  font-size: 13px;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.note-popover.active {
+  display: block;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+body.dark-theme .note-popover {
+  background: #2a2a2a;
+  box-shadow: rgba(0, 0, 0, .4) 0 2px 6px 0, rgba(0, 0, 0, .2) 0 4px 12px 3px;
+}
+
+.note-popover .note-highlight-text {
+  font-style: italic;
+  color: #666;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #eee;
+  font-size: 12px;
+  line-height: 1.4;
+  max-height: 60px;
+  overflow-y: auto;
+}
+
+body.dark-theme .note-popover .note-highlight-text {
+  color: #aaa;
+  border-bottom-color: #444;
+}
+
+.note-popover .note-textarea {
+  width: 100%;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 8px;
+  font-family: inherit;
+  font-size: 13px;
+  resize: vertical;
+  min-height: 80px;
+  max-height: 200px;
+  box-sizing: border-box;
+}
+
+.note-popover .note-textarea:focus {
+  outline: none;
+  border-color: #4285f4;
+  box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
+}
+
+body.dark-theme .note-popover .note-textarea {
+  background: #3a3a3a;
+  border-color: #555;
+  color: #fff;
+}
+
+body.dark-theme .note-popover .note-textarea:focus {
+  border-color: #8ab4f8;
+  box-shadow: 0 0 0 2px rgba(138, 180, 248, 0.2);
+}
+
+.note-popover .note-char-count {
+  text-align: right;
+  font-size: 11px;
+  color: #999;
+  margin-top: 4px;
+}
+
+body.dark-theme .note-popover .note-char-count {
+  color: #777;
+}
+
+.note-popover .note-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.note-popover .note-btn {
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.note-popover .note-btn-cancel {
+  background: #f5f5f5;
+  color: #666;
+}
+
+.note-popover .note-btn-cancel:hover {
+  background: #e0e0e0;
+}
+
+body.dark-theme .note-popover .note-btn-cancel {
+  background: #3a3a3a;
+  color: #aaa;
+}
+
+body.dark-theme .note-popover .note-btn-cancel:hover {
+  background: #4a4a4a;
+}
+
+.note-popover .note-btn-save {
+  background: #4285f4;
+  color: white;
+}
+
+.note-popover .note-btn-save:hover {
+  background: #3367d6;
+}
+
+/* Note indicator (underline) for highlighted text with notes */
+mark.citron-highlight.has-note {
+  border-bottom: 2px solid rgba(0, 0, 0, 0.4);
+}
+
+body.dark-theme mark.citron-highlight.has-note {
+  border-bottom: 2px solid rgba(255, 255, 255, 0.6);
+}
+
+/* Additional highlight colors */
+mark.citron-highlight.green {
+  background-color: #81c784 !important;
+}
+
+mark.citron-highlight.purple {
+  background-color: #ba68c8 !important;
+}
+
+mark.citron-highlight.orange {
+  background-color: #ffb74d !important;
+}
+
+/* Dark theme variants for new colors */
+body.dark-theme mark.citron-highlight.green {
+  background-color: #388e3c !important;
+}
+
+body.dark-theme mark.citron-highlight.purple {
+  background-color: #7b1fa2 !important;
+}
+
+body.dark-theme mark.citron-highlight.orange {
+  background-color: #f57c00 !important;
+}
+
