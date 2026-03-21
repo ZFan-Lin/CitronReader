@@ -1049,12 +1049,11 @@ class CitronReader {
       }
       
       this.iframeClickListener = (e) => {
-        // Close color picker if open
+        // Close color picker if open - clicking in iframe should close it
         const colorPicker = document.getElementById('highlightColorPicker');
-        const btnHighlight = document.getElementById('btnHighlight');
         if (colorPicker && colorPicker.classList.contains('active')) {
           colorPicker.classList.remove('active');
-          // Clear selection in iframe
+          // Clear selection in iframe only when closing the color picker
           try {
             const selection = doc.getSelection();
             if (selection) {
@@ -1063,11 +1062,11 @@ class CitronReader {
           } catch (err) {
             // Ignore errors
           }
+          return; // Stop processing after closing color picker
         }
         
-        // Close settings dropdown if open
+        // Close settings dropdown if open and click is not inside dropdown
         const dropdown = document.getElementById('settingsDropdown');
-        const btnSettings = document.getElementById('btnSettings');
         if (dropdown && dropdown.classList.contains('active')) {
           dropdown.classList.remove('active');
         }
