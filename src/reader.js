@@ -354,15 +354,16 @@ class CitronReader {
   }
 
   navigateToChapter(href) {
-    // Save current position before navigating
-    const frame = document.getElementById('viewerFrame');
-    if (frame && frame.contentDocument && this.currentBookKey) {
-      const location = this.getCurrentLocation(frame.contentDocument);
-      this.saveBookProgress(this.currentBookKey, location);
-    }
-    
+    // Find the chapter index first
     const chapterIndex = this.chapters.findIndex(ch => ch.href === href);
     if (chapterIndex !== -1) {
+      // Save current position before navigating (only if we have a valid document)
+      const frame = document.getElementById('viewerFrame');
+      if (frame && frame.contentDocument && frame.contentDocument.body && 
+          frame.contentDocument.body.scrollHeight > 0 && this.currentBookKey) {
+        const location = this.getCurrentLocation(frame.contentDocument);
+        this.saveBookProgress(this.currentBookKey, location);
+      }
       this.loadChapter(chapterIndex);
     }
   }
@@ -977,7 +978,7 @@ class CitronReader {
   getCurrentLocation(doc) {
     try {
       if (!doc || !doc.body) {
-        console.warn('Document or body not available for location detection');
+        console.warn('getCurrentLocation: Document or body not available');
         return '0';
       }
       
@@ -985,23 +986,29 @@ class CitronReader {
       const docElement = doc.documentElement;
       
       // Get scrollTop from whichever element has it
-      const scrollTop = Math.max(docElement.scrollTop || 0, body.scrollTop || 0);
+      const bodyScrollTop = body.scrollTop || 0;
+      const docElementScrollTop = docElement.scrollTop || 0;
+      const scrollTop = Math.max(bodyScrollTop, docElementScrollTop);
       
       // Get scrollHeight and clientHeight consistently
-      const scrollHeight = Math.max(docElement.scrollHeight, body.scrollHeight) - Math.max(docElement.clientHeight, body.clientHeight);
+      const bodyScrollHeight = body.scrollHeight || 0;
+      const docElementScrollHeight = docElement.scrollHeight || 0;
+      const bodyClientHeight = body.clientHeight || 0;
+      const docElementClientHeight = docElement.clientHeight || 0;
       
-      console.log('getCurrentLocation:', { scrollTop, scrollHeight, percentage: scrollTop / scrollHeight });
+      const scrollHeight = Math.max(bodyScrollHeight, docElementScrollHeight) - Math.max(bodyClientHeight, docElementClientHeight);
       
       if (scrollHeight <= 0) {
-        console.warn('scrollHeight is 0 or negative, returning 0');
+        // If scrollHeight is 0, the content fits in the viewport, so we're at position 0
+        console.log('getCurrentLocation: scrollHeight is 0, content fits in viewport, returning 0');
         return '0';
       }
       
       const percentage = (scrollTop / scrollHeight).toFixed(2);
-      console.log('Saved location percentage:', percentage);
+      console.log('getCurrentLocation: scrollTop=' + scrollTop + ', scrollHeight=' + scrollHeight + ', percentage=' + percentage);
       return percentage;
     } catch (e) {
-      console.warn('Could not get current location:', e);
+      console.warn('getCurrentLocation error:', e);
       return '0';
     }
   }
