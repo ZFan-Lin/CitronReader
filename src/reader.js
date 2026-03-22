@@ -1180,10 +1180,26 @@ class CitronReader {
           index++;
         }
       }
+      
+      // If this is a text node, also store its position among text nodes in the parent
+      let textNodeIndex = -1;
+      if (current.nodeType === Node.TEXT_NODE) {
+        textNodeIndex = 0;
+        let prevSibling = current.previousSibling;
+        while (prevSibling) {
+          if (prevSibling.nodeType === Node.TEXT_NODE) {
+            textNodeIndex++;
+          }
+          prevSibling = prevSibling.previousSibling;
+        }
+      }
+      
       path.unshift({
         name: current.nodeName,
         index: index,
-        id: current.id || null
+        id: current.id || null,
+        isTextNode: current.nodeType === Node.TEXT_NODE,
+        textNodeIndex: textNodeIndex
       });
       current = current.parentElement;
     }
@@ -1198,6 +1214,25 @@ class CitronReader {
     let current = doc.body;
     for (let i = 0; i < path.length; i++) {
       const step = path[i];
+      
+      // If this step is looking for a text node, we need special handling
+      if (step.isTextNode) {
+        // Find the parent element first (should be the previous step or current)
+        // The text node should be a direct child of 'current'
+        let textNodeCount = 0;
+        for (let child of current.childNodes) {
+          if (child.nodeType === Node.TEXT_NODE) {
+            if (textNodeCount === step.textNodeIndex) {
+              return child;
+            }
+            textNodeCount++;
+          }
+        }
+        // If we couldn't find the exact text node, return null
+        return null;
+      }
+      
+      // For element nodes, use the original logic
       const children = Array.from(current.childNodes).filter(n => 
         n.nodeName === step.name && (step.id === null || n.id === step.id)
       );
@@ -1528,6 +1563,7 @@ class CitronReader {
           // which was a direct child of this element. We need to find that specific child text node.
           // For cross-paragraph selections, the startContainer/endContainer are typically text nodes
           // inside elements like <span> within <p> elements.
+          // Since we now store text nodes directly in the path, this case should be rare
           const result = this.findExactTextNode(startNode, highlight.startOffset);
           if (result) {
             startTextNode = result.textNode;
@@ -1615,40 +1651,65 @@ class CitronReader {
   
   // Find the exact text node that was originally selected
   // This handles nested structures like <p><span>text</span></p>
+  // For start node: find the text node at the given offset position
+  // For end node: find the text node at the given offset position
   // Returns { textNode, offset } or null if not found
   findExactTextNode(elementNode, targetOffset) {
-    // First, try to find a direct child text node
+    // The targetOffset is relative to the original startContainer/endContainer text node
+    // We need to find which text node within this element matches that offset pattern
+    
+    // Strategy: Look for a text node whose length is >= targetOffset
+    // This works because when saving, the offset is relative to that specific text node
+    
+    // First, try direct child text nodes
     for (let child of elementNode.childNodes) {
       if (child.nodeType === Node.TEXT_NODE) {
+        // If this text node can accommodate the offset, it's likely our target
         if (targetOffset <= child.length) {
           return {
             textNode: child,
             offset: Math.min(targetOffset, child.length)
           };
         }
-      } else if (child.nodeType === Node.ELEMENT_NODE) {
-        // If the element has only one text node descendant, check it
-        const walker = document.createTreeWalker(child, NodeFilter.SHOW_TEXT, null, false);
-        const firstTextNode = walker.nextNode();
-        const secondTextNode = walker.nextNode();
-        
-        // If this element contains exactly one text node and no other elements with text
-        if (firstTextNode && !secondTextNode) {
-          if (targetOffset <= firstTextNode.length) {
-            return {
-              textNode: firstTextNode,
-              offset: Math.min(targetOffset, firstTextNode.length)
-            };
+      }
+    }
+    
+    // If no direct child text node matches, search in descendant elements
+    // Look for span or other inline elements that contain text
+    for (let child of elementNode.childNodes) {
+      if (child.nodeType === Node.ELEMENT_NODE) {
+        // Check if this element contains a single text node directly
+        let directTextChild = null;
+        for (let grandChild of child.childNodes) {
+          if (grandChild.nodeType === Node.TEXT_NODE) {
+            if (directTextChild) {
+              // Multiple text children, skip this complex case for now
+              directTextChild = null;
+              break;
+            }
+            directTextChild = grandChild;
+          } else if (grandChild.nodeType === Node.ELEMENT_NODE) {
+            // Nested elements, too complex
+            directTextChild = null;
+            break;
           }
         }
         
-        // Recursively search in child elements
+        // If this element has exactly one direct text child
+        if (directTextChild && targetOffset <= directTextChild.length) {
+          return {
+            textNode: directTextChild,
+            offset: Math.min(targetOffset, directTextChild.length)
+          };
+        }
+        
+        // Recursively search deeper
         const result = this.findExactTextNode(child, targetOffset);
         if (result) return result;
       }
     }
     
-    // Fallback: return the first text node found with the offset clamped to its length
+    // Fallback: return the first text node found with offset clamped
     const walker = document.createTreeWalker(elementNode, NodeFilter.SHOW_TEXT, null, false);
     const firstTextNode = walker.nextNode();
     if (firstTextNode) {
