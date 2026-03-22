@@ -1072,7 +1072,8 @@ class CitronReader {
       timestamp: Date.now(),
       startOffset: originalRange.startOffset,
       endOffset: originalRange.endOffset,
-      parentPath: this.getNodePath(originalRange.startContainer)
+      startParentPath: this.getNodePath(originalRange.startContainer),
+      endParentPath: this.getNodePath(originalRange.endContainer)
     };
     
     // Save highlight first (before DOM manipulation)
@@ -1506,91 +1507,118 @@ class CitronReader {
   // Apply an existing highlight to the DOM
   applyExistingHighlight(doc, highlight) {
     try {
-      // Try to find the text node using the stored path and offset
-      const startNode = this.findNodeFromPath(highlight.parentPath, doc);
+      // Try to find the start and end text nodes using the stored paths and offsets
+      const startNode = this.findNodeFromPath(highlight.startParentPath, doc);
+      const endNode = this.findNodeFromPath(highlight.endParentPath, doc);
       
-      if (startNode) {
-        let textNode = null;
-        let charCount = 0;
+      if (startNode && endNode) {
+        // Both start and end nodes found - use path-based reconstruction
+        let startTextNode = null;
+        let endTextNode = null;
+        let startCharCount = 0;
+        let endCharCount = 0;
         
-        // If startNode is already a text node, use it directly
+        // Process start node
         if (startNode.nodeType === Node.TEXT_NODE) {
-          textNode = startNode;
-          charCount = 0;
+          startTextNode = startNode;
+          startCharCount = 0;
         } else if (startNode.childNodes.length > 0) {
-          // Find the text node within the parent node
-          const findTextNode = (node) => {
+          const findTextNodeForStart = (node) => {
             if (node.nodeType === Node.TEXT_NODE) {
-              if (charCount + node.length >= highlight.startOffset) {
-                textNode = node;
+              if (startCharCount + node.length >= highlight.startOffset) {
+                startTextNode = node;
                 return true;
               }
-              charCount += node.length;
+              startCharCount += node.length;
             }
             for (let child of node.childNodes) {
-              if (findTextNode(child)) return true;
+              if (findTextNodeForStart(child)) return true;
             }
             return false;
           };
-          
-          findTextNode(startNode);
+          findTextNodeForStart(startNode);
         }
         
-        if (textNode && textNode.length >= charCount) {
+        // Process end node
+        if (endNode.nodeType === Node.TEXT_NODE) {
+          endTextNode = endNode;
+          endCharCount = 0;
+        } else if (endNode.childNodes.length > 0) {
+          const findTextNodeForEnd = (node) => {
+            if (node.nodeType === Node.TEXT_NODE) {
+              if (endCharCount + node.length >= highlight.endOffset) {
+                endTextNode = node;
+                return true;
+              }
+              endCharCount += node.length;
+            }
+            for (let child of node.childNodes) {
+              if (findTextNodeForEnd(child)) return true;
+            }
+            return false;
+          };
+          findTextNodeForEnd(endNode);
+        }
+        
+        // If we found both text nodes, create the range
+        if (startTextNode && endTextNode) {
           const range = doc.createRange();
-          const actualStartOffset = Math.min(highlight.startOffset - charCount, textNode.length);
-          const highlightLength = highlight.endOffset - highlight.startOffset;
-          const actualEndOffset = Math.min(actualStartOffset + highlightLength, textNode.length);
+          const actualStartOffset = Math.min(Math.max(0, highlight.startOffset - startCharCount), startTextNode.length);
+          const actualEndOffset = Math.min(Math.max(0, highlight.endOffset - endCharCount), endTextNode.length);
           
-          if (actualStartOffset < actualEndOffset) {
-            range.setStart(textNode, actualStartOffset);
-            range.setEnd(textNode, actualEndOffset);
-            this.addHighlightToDOM(range, highlight.id, highlight.color || 'yellow');
+          try {
+            range.setStart(startTextNode, actualStartOffset);
+            range.setEnd(endTextNode, actualEndOffset);
+            
+            if (!range.collapsed) {
+              this.addHighlightToDOM(range, highlight.id, highlight.color || 'yellow');
+              return;
+            }
+          } catch (e) {
+            console.warn('Failed to create range from paths:', e);
           }
         }
       }
       
       // Fallback: search by text content if node path method failed
-      if (!startNode || !textNode) {
-        const bodyText = doc.body.textContent;
-        const searchText = highlight.text;
-        const index = bodyText.indexOf(searchText);
+      const bodyText = doc.body.textContent;
+      const searchText = highlight.text;
+      const index = bodyText.indexOf(searchText);
+      
+      if (index !== -1) {
+        // Simple approach - find and highlight first occurrence
+        const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT, null, false);
+        let node;
+        let currentPos = 0;
+        let foundStart = false;
+        let foundStartNode = null;
+        let startOffset = 0;
+        let endNode = null;
+        let endOffset = 0;
         
-        if (index !== -1) {
-          // Simple approach - find and highlight first occurrence
-          const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT, null, false);
-          let node;
-          let currentPos = 0;
-          let foundStart = false;
-          let startNode = null;
-          let startOffset = 0;
-          let endNode = null;
-          let endOffset = 0;
+        while (node = walker.nextNode()) {
+          const nodeLength = node.length;
           
-          while (node = walker.nextNode()) {
-            const nodeLength = node.length;
-            
-            if (!foundStart && currentPos + nodeLength > index) {
-              startNode = node;
-              startOffset = index - currentPos;
-              foundStart = true;
-            }
-            
-            if (foundStart && currentPos + nodeLength >= index + searchText.length) {
-              endNode = node;
-              endOffset = index + searchText.length - currentPos;
-              break;
-            }
-            
-            currentPos += nodeLength;
+          if (!foundStart && currentPos + nodeLength > index) {
+            foundStartNode = node;
+            startOffset = index - currentPos;
+            foundStart = true;
           }
           
-          if (startNode && endNode) {
-            const range = doc.createRange();
-            range.setStart(startNode, startOffset);
-            range.setEnd(endNode, endOffset);
-            this.addHighlightToDOM(range, highlight.id, highlight.color || 'yellow');
+          if (foundStart && currentPos + nodeLength >= index + searchText.length) {
+            endNode = node;
+            endOffset = index + searchText.length - currentPos;
+            break;
           }
+          
+          currentPos += nodeLength;
+        }
+        
+        if (foundStartNode && endNode) {
+          const range = doc.createRange();
+          range.setStart(foundStartNode, startOffset);
+          range.setEnd(endNode, endOffset);
+          this.addHighlightToDOM(range, highlight.id, highlight.color || 'yellow');
         }
       }
     } catch (e) {
@@ -1858,7 +1886,8 @@ class CitronReader {
         timestamp: Date.now(),
         startOffset: range.startOffset,
         endOffset: range.endOffset,
-        parentPath: this.getNodePath(range.startContainer)
+        startParentPath: this.getNodePath(range.startContainer),
+        endParentPath: this.getNodePath(range.endContainer)
       };
       
       // Save highlight first
