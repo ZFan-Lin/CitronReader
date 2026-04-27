@@ -20,10 +20,8 @@
     "default_title": "Open EPUB"
   },
   "background": {
-    "service_worker": "src/background.js"
-  },
-  "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; worker-src 'self' blob:"
+    "service_worker": "src/background.js",
+    "type": "module"
   },
   "icons": {
     "16": "icons/icon16.png",

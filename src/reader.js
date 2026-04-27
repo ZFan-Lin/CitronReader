@@ -27,6 +27,7 @@ class CitronReader {
     this.previousViewerFrame = null;
     this.notePopover = null;
     this.currentNoteHighlightId = null;
+    this.currentBlobUrls = []; // Track blob URLs for cleanup
     
     this.uiText = {
       en: {
@@ -382,7 +383,7 @@ class CitronReader {
         const navPoints = ncxDoc.querySelectorAll('navMap navPoint');
         navPoints.forEach(navPoint => {
           try {
-            const labelElement = navPoint.querySelector('navLabel text');
+            const labelElement = navPoint.querySelector('navLabel > text');
             const label = labelElement ? labelElement.textContent || 'Untitled' : 'Untitled';
             const contentElement = navPoint.querySelector('content');
             const src = contentElement ? contentElement.getAttribute('src') : null;
@@ -500,8 +501,8 @@ class CitronReader {
       const parser = new DOMParser();
       const doc = parser.parseFromString(content, 'application/xhtml+xml');
       
-      // Track created blob URLs for cleanup
-      this.currentBlobUrls = [];
+      // Track created blob URLs for cleanup (reset array, don't reassign)
+      this.currentBlobUrls.length = 0;
       // Fix image src paths - need to extract images from zip and create blob URLs
       const images = doc.querySelectorAll('img');
       for (const img of images) {
@@ -2070,16 +2071,12 @@ class CitronReader {
     if (!frame) return;
     
     // Debounce function to avoid saving too frequently
-    let saveTimeout = null;
-    const debouncedSave = () => {
-      if (saveTimeout) clearTimeout(saveTimeout);
-      saveTimeout = setTimeout(() => {
-        if (this.currentBookKey) {
-          const location = this.getCurrentLocation(frame);
-          this.saveBookProgress(this.currentBookKey, location);
-        }
-      }, 500);
-    };
+    const debouncedSave = debounce(() => {
+      if (this.currentBookKey) {
+        const location = this.getCurrentLocation(frame);
+        this.saveBookProgress(this.currentBookKey, location);
+      }
+    }, 500);
     
     // Listen for scroll events on the iframe element itself
     try {
@@ -2508,6 +2505,19 @@ class CitronReader {
       console.warn('Could not setup highlight click listeners:', e);
     }
   }
+}
+
+// Utility function: Debounce
+function debounce(func, wait) {
+  let timeout;
+  return function executedFunction(...args) {
+    const later = () => {
+      clearTimeout(timeout);
+      func(...args);
+    };
+    clearTimeout(timeout);
+    timeout = setTimeout(later, wait);
+  };
 }
 
 // Initialize reader when DOM is ready
