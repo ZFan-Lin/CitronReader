@@ -2195,6 +2195,9 @@ class CitronReader {
       const body = doc.body;
       const docElement = doc.documentElement;
       
+      // Force layout recalculation to get accurate scroll metrics
+      void body.offsetHeight;
+      
       // Strategy 1: Find an anchor element (element with id) near the center of viewport
       // This is much more reliable than percentage for EPUBs which have varying content
       const viewportHeight = frame.clientHeight || window.innerHeight;
@@ -2231,11 +2234,31 @@ class CitronReader {
       }
       
       // Strategy 2: Fallback to percentage if no good anchor found
+      // Try multiple sources for scroll height
       const bodyScrollHeight = body.scrollHeight || 0;
       const docElementScrollHeight = docElement.scrollHeight || 0;
-      const scrollHeight = Math.max(bodyScrollHeight, docElementScrollHeight) - viewportHeight;
+      const bodyOffsetHeight = body.offsetHeight || 0;
+      const docElementOffsetHeight = docElement.offsetHeight || 0;
+      
+      // Use the maximum of scrollHeight and offsetHeight
+      const bodyTotalHeight = Math.max(bodyScrollHeight, bodyOffsetHeight);
+      const docTotalHeight = Math.max(docElementScrollHeight, docElementOffsetHeight);
+      const totalHeight = Math.max(bodyTotalHeight, docTotalHeight);
+      
+      const scrollHeight = totalHeight - viewportHeight;
+      
+      console.log('getCurrentLocation: bodyScrollHeight=', bodyScrollHeight, 'bodyOffsetHeight=', bodyOffsetHeight, 
+                  'docElementScrollHeight=', docElementScrollHeight, 'docElementOffsetHeight=', docElementOffsetHeight,
+                  'totalHeight=', totalHeight, 'scrollHeight=', scrollHeight);
       
       if (scrollHeight <= 0) {
+        // If still 0, check if content is actually scrollable
+        const actualScrollTop = Math.max(body.scrollTop || 0, docElement.scrollTop || 0);
+        if (actualScrollTop > 0) {
+          // Content has been scrolled but scrollHeight is 0, use a rough estimate
+          console.log('getCurrentLocation: scrollHeight is 0 but scrollTop > 0, using fallback');
+          return { type: 'percent', value: Math.min(1, actualScrollTop / Math.max(1, viewportHeight)) };
+        }
         console.log('getCurrentLocation: scrollHeight is 0, returning 0');
         return { type: 'percent', value: 0 };
       }
