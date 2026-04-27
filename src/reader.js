@@ -767,10 +767,58 @@ class CitronReader {
               // Restore based on location type
               if (locationObj.type === 'id' && locationObj.value) {
                 const targetId = locationObj.value;
-                const targetElement = doc.getElementById(targetId);
+                console.log('Looking for target ID:', targetId);
+                
+                // Try multiple strategies to find the target element
+                let targetElement = null;
+                
+                // Strategy 1: getElementById (standard)
+                targetElement = doc.getElementById(targetId);
                 if (targetElement) {
-                  targetElement.scrollIntoView();
+                  console.log('✓ Found element by id:', targetId);
+                }
+                
+                // Strategy 2: getElementsByName (for named anchors)
+                if (!targetElement) {
+                  const namedElements = doc.getElementsByName(targetId);
+                  if (namedElements && namedElements.length > 0) {
+                    targetElement = namedElements[0];
+                    console.log('✓ Found element by name:', targetId);
+                  }
+                }
+                
+                // Strategy 3: Query selector for anchor with name attribute
+                if (!targetElement) {
+                  targetElement = doc.querySelector(`a[name="${targetId}"]`);
+                  if (targetElement) {
+                    console.log('✓ Found anchor with name attribute:', targetId);
+                  }
+                }
+                
+                // Strategy 4: Check all elements for matching id or name
+                if (!targetElement) {
+                  const allElements = body.querySelectorAll('*');
+                  for (let el of allElements) {
+                    if (el.id === targetId || el.getAttribute('name') === targetId) {
+                      targetElement = el;
+                      console.log('✓ Found element by iterating all elements:', targetId);
+                      break;
+                    }
+                  }
+                }
+                
+                if (targetElement) {
+                  // Scroll element into view with smooth behavior
+                  targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
                   console.log('✓ Restored position using anchor ID:', targetId);
+                  
+                  // Also highlight the element briefly to confirm navigation
+                  const originalBg = targetElement.style.backgroundColor;
+                  targetElement.style.transition = 'background-color 0.3s';
+                  targetElement.style.backgroundColor = '#fff3cd';
+                  setTimeout(() => {
+                    targetElement.style.backgroundColor = originalBg || '';
+                  }, 1500);
                 } else {
                   console.warn('Anchor ID not found:', targetId, '- falling back to percentage');
                   // Fall back to percentage if ID not found
@@ -2153,10 +2201,14 @@ class CitronReader {
       const scrollTop = body.scrollTop || docElement.scrollTop || 0;
       const centerY = scrollTop + (viewportHeight / 3); // Look at upper third of visible area
       
+      console.log('getCurrentLocation: viewportHeight=', viewportHeight, 'scrollTop=', scrollTop, 'centerY=', centerY);
+      
       // Get all elements with ID in the body
       const allElements = body.querySelectorAll('*[id]');
       let bestAnchorId = null;
       let minDistance = Infinity;
+      
+      console.log('getCurrentLocation: Found', allElements.length, 'elements with IDs');
       
       for (let el of allElements) {
         const rect = el.getBoundingClientRect();
@@ -2174,7 +2226,7 @@ class CitronReader {
       }
       
       if (bestAnchorId) {
-        console.log('getCurrentLocation: Found anchor ID:', bestAnchorId);
+        console.log('getCurrentLocation: Found anchor ID:', bestAnchorId, 'distance:', minDistance);
         return { type: 'id', value: bestAnchorId };
       }
       
