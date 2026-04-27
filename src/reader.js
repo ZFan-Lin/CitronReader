@@ -264,8 +264,9 @@ class CitronReader {
 
   async loadEpub(file) {
     try {
-      // Show loading state
-      document.getElementById('welcomeMessage').innerHTML = '<p>Loading EPUB...</p>';
+      // Show loading state with progress
+      const welcomeMsg = document.getElementById('welcomeMessage');
+      welcomeMsg.innerHTML = '<p>Loading EPUB...<br><span id="loadingProgress">0%</span></p>';
       
       // Read file as array buffer
       const arrayBuffer = await file.arrayBuffer();
@@ -275,7 +276,15 @@ class CitronReader {
         throw new Error('JSZip library not loaded');
       }
       
-      this.zip = await JSZip.loadAsync(arrayBuffer);
+      // Load zip with progress tracking
+      this.zip = await JSZip.loadAsync(arrayBuffer, {
+        onProgress: (percent) => {
+          const progressSpan = document.getElementById('loadingProgress');
+          if (progressSpan) {
+            progressSpan.textContent = Math.round(percent * 100) + '%';
+          }
+        }
+      });
       
       // Generate book key from filename
       this.currentBookKey = 'book_' + file.name.replace(/[^a-zA-Z0-9]/g, '_');
@@ -476,6 +485,8 @@ class CitronReader {
   async loadChapter(index) {
     if (index < 0 || index >= this.chapters.length) return;
     
+    // Clean up blob URLs from previous chapter to prevent memory leaks
+    this.cleanupBlobUrls();
     this.currentChapterIndex = index;
     const chapter = this.chapters[index];
     
@@ -489,6 +500,8 @@ class CitronReader {
       const parser = new DOMParser();
       const doc = parser.parseFromString(content, 'application/xhtml+xml');
       
+      // Track created blob URLs for cleanup
+      this.currentBlobUrls = [];
       // Fix image src paths - need to extract images from zip and create blob URLs
       const images = doc.querySelectorAll('img');
       for (const img of images) {
@@ -502,6 +515,7 @@ class CitronReader {
             if (imgFile) {
               const imgBlob = await imgFile.async('blob');
               const imgUrl = URL.createObjectURL(imgBlob);
+              this.currentBlobUrls.push(imgUrl);
               img.setAttribute('src', imgUrl);
             }
           } catch (e) {
@@ -521,6 +535,7 @@ class CitronReader {
             if (imgFile) {
               const imgBlob = await imgFile.async('blob');
               const imgUrl = URL.createObjectURL(imgBlob);
+              this.currentBlobUrls.push(imgUrl);
               svgImg.setAttributeNS('http://www.w3.org/1999/xlink', 'href', imgUrl);
             }
           } catch (e) {
@@ -540,6 +555,7 @@ class CitronReader {
             if (audioFile) {
               const audioBlob = await audioFile.async('blob');
               const audioUrl = URL.createObjectURL(audioBlob);
+              this.currentBlobUrls.push(audioUrl);
               audio.setAttribute('src', audioUrl);
             }
           } catch (e) {
@@ -557,6 +573,7 @@ class CitronReader {
               if (audioFile) {
                 const audioBlob = await audioFile.async('blob');
                 const audioUrl = URL.createObjectURL(audioBlob);
+              this.currentBlobUrls.push(audioUrl);
                 source.setAttribute('src', audioUrl);
               }
             } catch (e) {
@@ -577,6 +594,7 @@ class CitronReader {
             if (videoFile) {
               const videoBlob = await videoFile.async('blob');
               const videoUrl = URL.createObjectURL(videoBlob);
+              this.currentBlobUrls.push(videoUrl);
               video.setAttribute('src', videoUrl);
             }
           } catch (e) {
@@ -594,6 +612,7 @@ class CitronReader {
               if (videoFile) {
                 const videoBlob = await videoFile.async('blob');
                 const videoUrl = URL.createObjectURL(videoBlob);
+              this.currentBlobUrls.push(videoUrl);
                 source.setAttribute('src', videoUrl);
               }
             } catch (e) {
@@ -869,6 +888,20 @@ class CitronReader {
       doc.body.style.zoom = this.settings.zoom;
     } catch (e) {
       console.warn('Could not apply styles to frame:', e);
+    }
+  }
+
+  // Clean up blob URLs to prevent memory leaks
+  cleanupBlobUrls() {
+    if (this.currentBlobUrls && Array.isArray(this.currentBlobUrls)) {
+      this.currentBlobUrls.forEach(url => {
+        try {
+          URL.revokeObjectURL(url);
+        } catch (e) {
+          console.warn('Error revoking blob URL:', e);
+        }
+      });
+      this.currentBlobUrls = [];
     }
   }
 
