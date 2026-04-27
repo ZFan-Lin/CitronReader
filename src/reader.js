@@ -469,8 +469,15 @@ class CitronReader {
   }
 
   navigateToChapter(href) {
-    // Find the chapter index first
-    const chapterIndex = this.chapters.findIndex(ch => ch.href === href);
+    // Extract the base href (without anchor) for matching with chapters
+    const baseHref = href.split('#')[0];
+    
+    // Find the chapter index first - match on base href (without anchor)
+    const chapterIndex = this.chapters.findIndex(ch => {
+      const chapterBaseHref = ch.href.split('#')[0];
+      return chapterBaseHref === baseHref;
+    });
+    
     if (chapterIndex !== -1) {
       // Save current position before navigating (only if we have a valid document)
       const frame = document.getElementById('viewerFrame');
@@ -479,6 +486,17 @@ class CitronReader {
         const location = this.getCurrentLocation(frame);
         this.saveBookProgress(this.currentBookKey, location);
       }
+      
+      // Check if there's an anchor in the href
+      const anchorMatch = href.match(/#(.+)$/);
+      const anchorId = anchorMatch ? anchorMatch[1] : null;
+      
+      // Set pending location with anchor info
+      if (anchorId) {
+        this.pendingLocation = { type: 'id', value: anchorId };
+        this.pendingChapterIndex = chapterIndex;
+      }
+      
       this.loadChapter(chapterIndex);
     }
   }
@@ -783,6 +801,7 @@ class CitronReader {
             console.warn('Could not restore reading position:', e);
           }
           this.pendingLocation = null;
+          this.pendingChapterIndex = null;
         }
         
         // Setup auto-save on scroll/resize in the iframe
